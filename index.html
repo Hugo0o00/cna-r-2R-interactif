@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CNA R-2R interactif</title>
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #ffffff;
+    --surface: #f4f4f5;
+    --border: #d4d4d8;
+    --text: #18181b;
+    --text-secondary: #52525b;
+    --text-muted: #a1a1aa;
+    --accent: #2563eb;
+    --accent-bg: #dbeafe;
+    --accent-text: #1d4ed8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #18181b;
+      --surface: #27272a;
+      --border: #3f3f46;
+      --text: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent: #60a5fa;
+      --accent-bg: #1e3a5f;
+      --accent-text: #93c5fd;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #18181b;
+    --surface: #27272a;
+    --border: #3f3f46;
+    --text: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --accent: #60a5fa;
+    --accent-bg: #1e3a5f;
+    --accent-text: #93c5fd;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    padding-top: calc(24px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  .card {
+    width: 100%;
+    max-width: 620px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 20px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; align-items: center; }
+  .control { display: flex; align-items: center; gap: 8px; }
+  .control label { font-size: 13px; color: var(--text-secondary); }
+  select, input[type=range] { accent-color: var(--accent); }
+  select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 8px; font-size: 13px;
+  }
+  input[type=range] { flex: 1; min-width: 140px; }
+  .switches { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+  .bit {
+    width: 48px; height: 48px; border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); transition: all .15s;
+    user-select: none;
+  }
+  .bit.on { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent); }
+  .readout { display: flex; justify-content: center; gap: 40px; margin-top: 16px; }
+  .readout div { text-align: center; }
+  .readout p { margin: 0; }
+  .readout .label { font-size: 12px; color: var(--text-secondary); }
+  .readout .value { font-size: 24px; font-weight: 600; margin-top: 4px; }
+  .bar-track { height: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; margin-top: 20px; overflow: hidden; }
+  .bar-fill { height: 100%; width: 0%; background: var(--accent); transition: width .2s; }
+  .formula { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>CNA à réseau R-2R</h1>
+  <p class="sub">Bascule les bits et observe la tension de sortie recalculée en temps réel.</p>
+
+  <div class="controls">
+    <div class="control">
+      <label for="nbits">Bits</label>
+      <select id="nbits">
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4" selected>4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="8">8</option>
+      </select>
+    </div>
+    <div class="control" style="flex:1;min-width:200px">
+      <label for="vref">Vref</label>
+      <input type="range" id="vref" min="1" max="15" step="0.5" value="5">
+      <span id="vreflabel" style="font-size:13px;min-width:46px;text-align:right">5.0 V</span>
+    </div>
+  </div>
+
+  <div class="switches" id="switches"></div>
+
+  <div class="readout">
+    <div>
+      <p class="label">Valeur binaire</p>
+      <p class="value" id="binval">0000 = 0</p>
+    </div>
+    <div>
+      <p class="label">Vout</p>
+      <p class="value" id="vout">0.00 V</p>
+    </div>
+  </div>
+
+  <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
+  <p class="formula" id="formula"></p>
+</div>
+
+<script>
+  let n = 4, vref = 5, bits = [0,0,0,0];
+
+  function setBits(v) {
+    n = parseInt(v, 10);
+    bits = new Array(n).fill(0);
+    render();
+  }
+
+  function toggle(i) {
+    bits[i] = bits[i] ? 0 : 1;
+    render();
+  }
+
+  function render() {
+    const c = document.getElementById('switches');
+    c.innerHTML = '';
+    for (let i = n - 1; i >= 0; i--) {
+      const el = document.createElement('div');
+      el.className = 'bit' + (bits[i] ? ' on' : '');
+      el.textContent = 'b' + i;
+      el.onclick = () => toggle(i);
+      c.appendChild(el);
+    }
+    update();
+  }
+
+  function update() {
+    let dec = 0;
+    for (let i = 0; i < n; i++) dec += bits[i] * Math.pow(2, i);
+    const max = Math.pow(2, n) - 1;
+    const binstr = bits.slice().reverse().join('');
+    document.getElementById('binval').textContent = binstr + ' = ' + dec;
+    const vout = vref * dec / Math.pow(2, n);
+    document.getElementById('vout').textContent = vout.toFixed(2) + ' V';
+    document.getElementById('bar').style.width = (max ? dec / max * 100 : 0) + '%';
+    document.getElementById('formula').textContent =
+      'Vout = Vref × valeur / 2^' + n + ' = ' + vref.toFixed(1) + ' × ' + dec + ' / ' + Math.pow(2, n);
+  }
+
+  document.getElementById('nbits').addEventListener('change', (e) => setBits(e.target.value));
+  document.getElementById('vref').addEventListener('input', (e) => {
+    vref = parseFloat(e.target.value);
+    document.getElementById('vreflabel').textContent = vref.toFixed(1) + ' V';
+    update();
+  });
+
+  render();
+</script>
+</body>
+</html>
